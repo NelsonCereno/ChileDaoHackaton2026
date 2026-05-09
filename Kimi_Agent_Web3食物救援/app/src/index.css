@@ -1,0 +1,96 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&family=IBM+Plex+Mono:wght@300;400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 234 94% 19%;
+    --foreground: 0 0% 100%;
+    --card: 240 33% 7%;
+    --card-foreground: 0 0% 100%;
+    --popover: 240 33% 7%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 18 100% 60%;
+    --primary-foreground: 234 94% 19%;
+    --secondary: 195 85% 62%;
+    --secondary-foreground: 234 94% 19%;
+    --muted: 240 20% 15%;
+    --muted-foreground: 240 10% 68%;
+    --accent: 145 63% 49%;
+    --accent-foreground: 234 94% 19%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 10% 20%;
+    --input: 240 10% 20%;
+    --ring: 18 100% 60%;
+    --radius: 0.625rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-[#03045E] text-white;
+    font-family: 'Inter', sans-serif;
+    font-weight: 300;
+    line-height: 1.7;
+    letter-spacing: 0.01em;
+    overflow-x: hidden;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 400;
+  }
+}
+
+@layer utilities {
+  .font-mono-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 300;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .font-display {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 400;
+  }
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #03045E;
+}
+::-webkit-scrollbar-thumb {
+  background: #FF6B35;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #e55a2b;
+}
+
+/* Marquee animation */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+}
