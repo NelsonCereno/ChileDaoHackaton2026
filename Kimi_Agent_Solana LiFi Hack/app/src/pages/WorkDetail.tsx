@@ -12,7 +12,8 @@ export function WorkDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { connection } = useConnection();
-  const { connected, publicKey, sendTransaction } = useWallet();
+  const wallet = useWallet();
+  const { connected, publicKey } = wallet;
 
   const [work, setWork] = useState<AcademicWork | null>(null);
   const [loading, setLoading] = useState(true);
@@ -25,12 +26,12 @@ export function WorkDetail() {
   useEffect(() => {
     async function load() {
       if (!id) return;
-      const data = await getWorkById(Number(id));
+      const data = await getWorkById(Number(id), connection);
       setWork(data);
       setLoading(false);
     }
     load();
-  }, [id]);
+  }, [id, connection]);
 
   const handleDirectPay = async () => {
     if (!connected || !publicKey || !work) {
@@ -40,7 +41,7 @@ export function WorkDetail() {
     setError('');
     setAccessing(true);
     try {
-      const sig = await accessWork(connection, publicKey, work, sendTransaction);
+      const sig = await accessWork(connection, wallet as any, work);
       console.log('Transaction:', sig);
       setAccessGranted(true);
     } catch {

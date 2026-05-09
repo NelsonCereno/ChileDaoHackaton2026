@@ -1,0 +1,17 @@
+[package]
+name = "edumint"
+version = "0.1.0"
+description = "EduMint academic registry"
+edition = "2021"
+
+[lib]
+name = "edumint"
+crate-type = ["cdylib", "lib"]
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+
+[dependencies]
+anchor-lang = "0.30.1"

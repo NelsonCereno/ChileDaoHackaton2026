@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useConnection } from '@solana/wallet-adapter-react';
 import { Search, SlidersHorizontal, BookOpen } from 'lucide-react';
 import { WorkCard } from '@/components/WorkCard';
 import { getAllWorks } from '@/lib/solana';
 import type { AcademicWork } from '@/lib/solana';
 
 export function Explore() {
+  const { connection } = useConnection();
   const [works, setWorks] = useState<AcademicWork[]>([]);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'recent' | 'price-asc' | 'price-desc' | 'popular'>('recent');
@@ -13,12 +15,12 @@ export function Explore() {
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const data = await getAllWorks();
+      const data = await getAllWorks(connection);
       setWorks(data);
       setLoading(false);
     }
     load();
-  }, []);
+  }, [connection]);
 
   const filteredWorks = useMemo(() => {
     let result = [...works];

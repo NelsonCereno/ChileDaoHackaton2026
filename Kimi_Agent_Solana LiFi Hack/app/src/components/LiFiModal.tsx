@@ -7,6 +7,8 @@ import {
   SOLANA_USDC,
   getCrossChainQuote,
   formatTokenAmount,
+  connectEvmWallet,
+  executeCrossChainRoute,
 } from '@/lib/lifi';
 import type { QuoteResult } from '@/lib/lifi';
 import { truncateAddress, lamportsToSOL } from '@/lib/solana';
@@ -27,11 +29,20 @@ export function LiFiModal({ isOpen, onClose, work, professorAddress, onPaymentCo
   const [loading, setLoading] = useState(false);
   const [executing, setExecuting] = useState(false);
   const [step, setStep] = useState<'quote' | 'confirm' | 'executing' | 'success'>('quote');
+  const [evmAddress, setEvmAddress] = useState('');
+  const [walletError, setWalletError] = useState('');
 
   const solPrice = parseFloat(lamportsToSOL(work.priceLamports));
 
   const fetchQuote = useCallback(async () => {
     if (!fromAmount || parseFloat(fromAmount) <= 0) return;
+    const address = await connectEvmWallet();
+    if (!address) {
+      setWalletError('Please connect an EVM wallet (MetaMask).');
+      return;
+    }
+    setWalletError('');
+    setEvmAddress(address);
     setLoading(true);
     setStep('quote');
 
@@ -45,7 +56,7 @@ export function LiFiModal({ isOpen, onClose, work, professorAddress, onPaymentCo
       toToken: SOLANA_USDC,
       fromAmount: amountInWei,
       toAddress: professorAddress,
-      fromAddress: '0x0000000000000000000000000000000000000000',
+      fromAddress: address,
     });
 
     setQuote(result);
@@ -54,11 +65,16 @@ export function LiFiModal({ isOpen, onClose, work, professorAddress, onPaymentCo
   }, [fromAmount, selectedChain, professorAddress]);
 
   const executePayment = async () => {
+    if (!quote) return;
     setExecuting(true);
     setStep('executing');
 
-    // Simulate cross-chain execution
-    await new Promise((r) => setTimeout(r, 3000));
+    const ok = await executeCrossChainRoute(quote.route);
+    if (!ok) {
+      setExecuting(false);
+      setStep('confirm');
+      return;
+    }
 
     setStep('success');
     setExecuting(false);
@@ -157,6 +173,9 @@ export function LiFiModal({ isOpen, onClose, work, professorAddress, onPaymentCo
                   {loading ? <Loader2 size={16} className="animate-spin" /> : 'Get Quote'}
                 </button>
               </div>
+              {walletError && (
+                <div className="text-xs text-red-400">{walletError}</div>
+              )}
             </div>
 
             {/* To Chain (Fixed Solana) */}

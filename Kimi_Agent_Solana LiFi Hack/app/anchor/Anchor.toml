@@ -1,0 +1,22 @@
+[toolchain]
+anchor_version = "0.30.1"
+solana_version = "1.18.18"
+
+[features]
+resolution = true
+
+[programs.localnet]
+edumint = "Edumint1111111111111111111111111111111111112"
+
+[programs.devnet]
+edumint = "Edumint1111111111111111111111111111111111112"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "devnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "anchor test"

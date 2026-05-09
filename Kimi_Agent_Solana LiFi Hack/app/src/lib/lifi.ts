@@ -38,6 +38,13 @@ export function initLiFi() {
   }
 }
 
+export async function connectEvmWallet(): Promise<string | null> {
+  const provider = (window as any)?.ethereum;
+  if (!provider) return null;
+  const accounts = await provider.request({ method: 'eth_requestAccounts' });
+  return accounts?.[0] || null;
+}
+
 export interface QuoteRequest {
   fromChain: number;
   toChain: number;

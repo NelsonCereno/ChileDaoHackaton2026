@@ -1,15 +1,17 @@
-import { useState, useRef, useCallback } from 'react';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { useNavigate } from 'react-router-dom';
 import { Upload, FileText, Hash, DollarSign, Loader2, BookOpen, Pencil, Copy, Check } from 'lucide-react';
 import { computeSHA256 } from '@/lib/hash';
-import { registerWork, getWorksByProfessor, lamportsToSOL, truncateAddress } from '@/lib/solana';
+import { registerWork, getWorksByProfessor, lamportsToSOL, truncateAddress, updateWorkPrice } from '@/lib/solana';
 import { MonolithicAvatar } from '@/components/MonolithicAvatar';
 import { ElectricConduitButton } from '@/components/ElectricConduitButton';
 import type { AcademicWork } from '@/lib/solana';
 
 export function Professor() {
-  const { connected, publicKey } = useWallet();
+  const wallet = useWallet();
+  const { connected, publicKey } = wallet;
+  const { connection } = useConnection();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -30,16 +32,16 @@ export function Professor() {
   // Load works when wallet connects
   const loadWorks = useCallback(async () => {
     if (!publicKey) return;
-    const works = await getWorksByProfessor(publicKey.toString());
+    const works = await getWorksByProfessor(publicKey.toString(), connection);
     setMyWorks(works);
-  }, [publicKey]);
+  }, [publicKey, connection]);
 
-  // Load works on mount
-  useState(() => {
+  // Load works on connect
+  useEffect(() => {
     if (connected && publicKey) {
       loadWorks();
     }
-  });
+  }, [connected, publicKey, loadWorks]);
 
   const handleFileDrop = async (e: React.DragEvent) => {
     e.preventDefault();
@@ -82,12 +84,12 @@ export function Professor() {
     setIsRegistering(true);
     try {
       const work = await registerWork(
-        null as any,
+        connection,
+        wallet as any,
         title,
         description,
         fileHash,
-        Math.floor(parseFloat(price) * 1_000_000_000),
-        publicKey
+        Math.floor(parseFloat(price) * 1_000_000_000)
       );
       setMyWorks((prev) => [...prev, work]);
       // Reset form
@@ -111,13 +113,19 @@ export function Professor() {
 
   const confirmUpdatePrice = () => {
     if (!updateWorkId || !newPrice) return;
+    const newLamports = Math.floor(parseFloat(newPrice) * 1_000_000_000);
+    if (!connected || !publicKey) return;
     setMyWorks((prev) =>
       prev.map((w) =>
         w.workId === updateWorkId
-          ? { ...w, priceLamports: Math.floor(parseFloat(newPrice) * 1_000_000_000) }
+          ? { ...w, priceLamports: newLamports }
           : w
       )
     );
+    updateWorkPrice(connection, wallet as any, updateWorkId, newLamports).catch((error) => {
+      console.error('Update price error:', error);
+      loadWorks();
+    });
     setShowUpdateModal(false);
     setUpdateWorkId(null);
     setNewPrice('');
