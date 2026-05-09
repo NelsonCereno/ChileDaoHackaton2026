@@ -111,8 +111,7 @@
     { "code": 6003, "name": "InvalidPrice", "msg": "Price must be greater than zero" },
     { "code": 6004, "name": "Unauthorized", "msg": "Unauthorized" },
     { "code": 6005, "name": "Overflow", "msg": "Arithmetic overflow" },
-    { "code": 6006, "name": "InvalidUsdcMint", "msg": "Invalid USDC mint" },
-    { "code": 6007, "name": "InsufficientFunds", "msg": "Insufficient funds" }
+    { "code": 6006, "name": "InvalidUsdcMint", "msg": "Invalid USDC mint" }
   ],
   "metadata": {
     "address": "Edumint1111111111111111111111111111111111112"

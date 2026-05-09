@@ -10,6 +10,7 @@ pub const ACCESS_SEED: &[u8] = b"access";
 const TITLE_MAX: usize = 128;
 const DESC_MAX: usize = 512;
 const HASH_MAX: usize = 64;
+const USDC_DECIMALS: u8 = 6;
 
 #[program]
 pub mod edumint {
@@ -101,10 +102,9 @@ pub mod edumint {
         let work = &mut ctx.accounts.work;
         require!(work.professor == ctx.accounts.professor.key(), EduMintError::Unauthorized);
         require!(work.price_usdc > 0, EduMintError::InvalidPrice);
-        require!(ctx.accounts.usdc_mint.decimals == 6, EduMintError::InvalidUsdcMint);
         require!(
-            ctx.accounts.payer_token.amount >= work.price_usdc,
-            EduMintError::InsufficientFunds
+            ctx.accounts.usdc_mint.decimals == USDC_DECIMALS,
+            EduMintError::InvalidUsdcMint
         );
 
         let cpi_ctx = CpiContext::new(
@@ -279,6 +279,4 @@ pub enum EduMintError {
     Overflow,
     #[msg("Invalid USDC mint")]
     InvalidUsdcMint,
-    #[msg("Insufficient funds")]
-    InsufficientFunds,
 }

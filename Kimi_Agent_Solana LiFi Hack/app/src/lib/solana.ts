@@ -58,7 +58,7 @@ function getProvider(conn: Connection, wallet?: AnchorWallet): AnchorProvider {
 }
 
 function getProgram(provider: AnchorProvider): any {
-  const rawIdl = idl as any;
+  const rawIdl = idl as Record<string, unknown> & { metadata?: Record<string, unknown> };
   const idlWithAddress = {
     ...rawIdl,
     address: PROGRAM_ID.toString(),
@@ -68,7 +68,7 @@ function getProgram(provider: AnchorProvider): any {
     },
   };
 
-  return new Program(idlWithAddress, provider as any) as Program;
+  return new Program(idlWithAddress as any, provider as any) as any;
 }
 
 export function getRegistryPDA(): [PublicKey, number] {
@@ -88,11 +88,11 @@ export function getAccessPDA(workId: number, student: PublicKey): [PublicKey, nu
   );
 }
 
-export function getAssociatedTokenAddress(owner: PublicKey, mint: PublicKey): [PublicKey, number] {
+export function deriveAssociatedTokenAddress(owner: PublicKey, mint: PublicKey): PublicKey {
   return PublicKey.findProgramAddressSync(
     [owner.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), mint.toBuffer()],
     ASSOCIATED_TOKEN_PROGRAM_ID
-  );
+  )[0];
 }
 
 export function lamportsToSOL(lamports: number): string {
@@ -284,12 +284,12 @@ export async function purchaseAccessUsdc(
   const [workPda] = getWorkPDA(work.workId);
   const [accessPda] = getAccessPDA(work.workId, wallet.publicKey);
   const professor = new PublicKey(work.professor);
-  const [payerToken] = getAssociatedTokenAddress(wallet.publicKey, usdcMint);
+  const payerToken = deriveAssociatedTokenAddress(wallet.publicKey, usdcMint);
 
   const professorTokenFromEnv = import.meta.env.VITE_SOLANA_PROFESSOR_USDC_ATA;
   const professorToken = professorTokenFromEnv
     ? new PublicKey(professorTokenFromEnv)
-    : getAssociatedTokenAddress(professor, usdcMint)[0];
+    : deriveAssociatedTokenAddress(professor, usdcMint);
 
   return program.methods
     .purchaseAccessUsdc()

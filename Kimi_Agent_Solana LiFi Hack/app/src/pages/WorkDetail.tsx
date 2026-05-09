@@ -60,8 +60,9 @@ export function WorkDetail() {
       const sig = await accessWork(connection, wallet as any, work);
       console.log('Transaction:', sig);
       setAccessGranted(true);
-    } catch {
-      setError('Transaction failed. Please try again.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Transaction failed: ${message}`);
     }
     setAccessing(false);
   };
@@ -84,8 +85,9 @@ export function WorkDetail() {
       console.log('USDC access tx:', sig);
       setAccessGranted(true);
       setShowLiFi(false);
-    } catch {
-      setError('Cross-chain payment completed, but on-chain USDC registration failed.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Cross-chain payment completed, but on-chain USDC registration failed: ${message}`);
     } finally {
       setRegisteringUsdcAccess(false);
     }
