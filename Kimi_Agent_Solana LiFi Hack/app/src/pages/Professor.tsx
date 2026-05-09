@@ -18,6 +18,7 @@ export function Professor() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
+  const [priceUsdc, setPriceUsdc] = useState('');
   const [fileHash, setFileHash] = useState('');
   const [fileName, setFileName] = useState('');
   const [isDragging, setIsDragging] = useState(false);
@@ -76,7 +77,7 @@ export function Professor() {
       alert('Please connect your wallet first');
       return;
     }
-    if (!title || !description || !fileHash || !price) {
+    if (!title || !description || !fileHash || !price || !priceUsdc) {
       alert('Please fill in all fields');
       return;
     }
@@ -89,13 +90,15 @@ export function Professor() {
         title,
         description,
         fileHash,
-        Math.floor(parseFloat(price) * 1_000_000_000)
+        Math.floor(parseFloat(price) * 1_000_000_000),
+        Math.floor(parseFloat(priceUsdc) * 1_000_000)
       );
       setMyWorks((prev) => [...prev, work]);
       // Reset form
       setTitle('');
       setDescription('');
       setPrice('');
+      setPriceUsdc('');
       setFileHash('');
       setFileName('');
     } catch (error) {
@@ -166,7 +169,7 @@ export function Professor() {
         <div className="bg-[#262626] border border-[#404040] p-8 space-y-8">
           <h2 className="font-display text-3xl text-[#ffd900]">Mint New Work</h2>
 
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-3 gap-6">
             {/* Title */}
             <div className="space-y-2">
               <label className="text-sm text-[#8a8a8a] flex items-center gap-2">
@@ -194,6 +197,22 @@ export function Professor() {
                 placeholder="0.05"
                 min="0"
                 step="0.001"
+                className="w-full bg-[#050505] border border-[#404040] px-4 py-3 text-[#fbf5dc] placeholder-[#404040] focus:border-[#ffd900] focus:outline-none transition-colors"
+              />
+            </div>
+
+            {/* Price USDC */}
+            <div className="space-y-2">
+              <label className="text-sm text-[#8a8a8a] flex items-center gap-2">
+                <DollarSign size={14} /> Price (USDC)
+              </label>
+              <input
+                type="number"
+                value={priceUsdc}
+                onChange={(e) => setPriceUsdc(e.target.value)}
+                placeholder="5.00"
+                min="0"
+                step="0.01"
                 className="w-full bg-[#050505] border border-[#404040] px-4 py-3 text-[#fbf5dc] placeholder-[#404040] focus:border-[#ffd900] focus:outline-none transition-colors"
               />
             </div>
@@ -264,7 +283,7 @@ export function Professor() {
           <ElectricConduitButton
             onClick={handleRegister}
             loading={isRegistering}
-            disabled={!title || !description || !fileHash || !price}
+            disabled={!title || !description || !fileHash || !price || !priceUsdc}
             className="w-full py-5"
           >
             Register on Solana
@@ -319,6 +338,9 @@ export function Professor() {
                     <div className="text-right">
                       <div className="font-display text-xl text-[#fbf5dc]">
                         {lamportsToSOL(work.priceLamports)} SOL
+                      </div>
+                      <div className="text-xs text-[#ffd900]">
+                        {(work.priceUsdc / 1_000_000).toFixed(2)} USDC
                       </div>
                       <div className="text-xs text-[#8a8a8a]">
                         {work.accessCount} accesses

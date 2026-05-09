@@ -2,7 +2,15 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { ArrowLeft, Hash, Copy, Check, Calendar, Eye, Wallet, Loader2, Globe } from 'lucide-react';
-import { getWorkById, lamportsToSOL, truncateAddress, accessWork } from '@/lib/solana';
+import {
+  getWorkById,
+  lamportsToSOL,
+  truncateAddress,
+  accessWork,
+  hasAccess,
+  purchaseAccessUsdc,
+  baseUnitsToUsdc,
+} from '@/lib/solana';
 import { MonolithicAvatar } from '@/components/MonolithicAvatar';
 import { LiFiModal } from '@/components/LiFiModal';
 import { ElectricConduitButton } from '@/components/ElectricConduitButton';
@@ -14,11 +22,13 @@ export function WorkDetail() {
   const { connection } = useConnection();
   const wallet = useWallet();
   const { connected, publicKey } = wallet;
+  const studentAddress = publicKey?.toString();
 
   const [work, setWork] = useState<AcademicWork | null>(null);
   const [loading, setLoading] = useState(true);
   const [accessing, setAccessing] = useState(false);
   const [accessGranted, setAccessGranted] = useState(false);
+  const [registeringUsdcAccess, setRegisteringUsdcAccess] = useState(false);
   const [showLiFi, setShowLiFi] = useState(false);
   const [copiedHash, setCopiedHash] = useState(false);
   const [error, setError] = useState('');
@@ -28,10 +38,16 @@ export function WorkDetail() {
       if (!id) return;
       const data = await getWorkById(Number(id), connection);
       setWork(data);
+      if (data && publicKey) {
+        const granted = await hasAccess(connection, data.workId, publicKey);
+        setAccessGranted(granted);
+      } else {
+        setAccessGranted(false);
+      }
       setLoading(false);
     }
     load();
-  }, [id, connection]);
+  }, [id, connection, studentAddress]);
 
   const handleDirectPay = async () => {
     if (!connected || !publicKey || !work) {
@@ -57,6 +73,22 @@ export function WorkDetail() {
     }
     setError('');
     setShowLiFi(true);
+  };
+
+  const handleCrossChainPaymentComplete = async () => {
+    if (!work || !publicKey) return;
+    setRegisteringUsdcAccess(true);
+    setError('');
+    try {
+      const sig = await purchaseAccessUsdc(connection, wallet as any, work);
+      console.log('USDC access tx:', sig);
+      setAccessGranted(true);
+      setShowLiFi(false);
+    } catch {
+      setError('Cross-chain payment completed, but on-chain USDC registration failed.');
+    } finally {
+      setRegisteringUsdcAccess(false);
+    }
   };
 
   const copyHash = () => {
@@ -92,6 +124,7 @@ export function WorkDetail() {
   }
 
   const solPrice = lamportsToSOL(work.priceLamports);
+  const usdcPrice = baseUnitsToUsdc(work.priceUsdc);
   const dateStr = new Date(work.createdAt).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
@@ -144,6 +177,7 @@ export function WorkDetail() {
                   <span>Price</span>
                 </div>
                 <p className="font-display text-2xl text-[#fbf5dc]">{solPrice} SOL</p>
+                <p className="text-xs text-[#ffd900]">{usdcPrice} USDC</p>
               </div>
               <div className="space-y-1">
                 <div className="flex items-center gap-1.5 text-[#8a8a8a] text-xs">
@@ -254,11 +288,9 @@ export function WorkDetail() {
           isOpen={showLiFi}
           onClose={() => setShowLiFi(false)}
           work={work}
-          professorAddress={work.professor}
-          onPaymentComplete={() => {
-            setAccessGranted(true);
-            setShowLiFi(false);
-          }}
+          solanaAddress={publicKey?.toString() || ''}
+          onPaymentComplete={handleCrossChainPaymentComplete}
+          disabled={registeringUsdcAccess}
         />
       )}
     </div>
