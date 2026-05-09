@@ -11,38 +11,42 @@ import {
   executeCrossChainRoute,
 } from '@/lib/lifi';
 import type { QuoteResult } from '@/lib/lifi';
-import { truncateAddress, lamportsToSOL } from '@/lib/solana';
+import { truncateAddress, lamportsToSOL, baseUnitsToUsdc } from '@/lib/solana';
 import type { AcademicWork } from '@/lib/solana';
 
 interface LiFiModalProps {
   isOpen: boolean;
   onClose: () => void;
   work: AcademicWork;
-  professorAddress: string;
-  onPaymentComplete: () => void;
+  solanaAddress: string;
+  onPaymentComplete: () => Promise<void> | void;
+  disabled?: boolean;
 }
 
-export function LiFiModal({ isOpen, onClose, work, professorAddress, onPaymentComplete }: LiFiModalProps) {
+export function LiFiModal({ isOpen, onClose, work, solanaAddress, onPaymentComplete, disabled = false }: LiFiModalProps) {
   const [selectedChain, setSelectedChain] = useState(SUPPORTED_CHAINS[1]); // Base
   const [fromAmount, setFromAmount] = useState('');
   const [quote, setQuote] = useState<QuoteResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [executing, setExecuting] = useState(false);
   const [step, setStep] = useState<'quote' | 'confirm' | 'executing' | 'success'>('quote');
-  const [evmAddress, setEvmAddress] = useState('');
   const [walletError, setWalletError] = useState('');
 
   const solPrice = parseFloat(lamportsToSOL(work.priceLamports));
+  const usdcPrice = baseUnitsToUsdc(work.priceUsdc);
 
   const fetchQuote = useCallback(async () => {
     if (!fromAmount || parseFloat(fromAmount) <= 0) return;
+    if (!solanaAddress) {
+      setWalletError('Please connect your Solana wallet first.');
+      return;
+    }
     const address = await connectEvmWallet();
     if (!address) {
       setWalletError('Please connect an EVM wallet (MetaMask).');
       return;
     }
     setWalletError('');
-    setEvmAddress(address);
     setLoading(true);
     setStep('quote');
 
@@ -55,14 +59,14 @@ export function LiFiModal({ isOpen, onClose, work, professorAddress, onPaymentCo
       fromToken: NATIVE_TOKEN[selectedChain.id],
       toToken: SOLANA_USDC,
       fromAmount: amountInWei,
-      toAddress: professorAddress,
+      toAddress: solanaAddress,
       fromAddress: address,
     });
 
     setQuote(result);
     if (result) setStep('confirm');
     setLoading(false);
-  }, [fromAmount, selectedChain, professorAddress]);
+  }, [fromAmount, selectedChain, solanaAddress]);
 
   const executePayment = async () => {
     if (!quote) return;
@@ -80,11 +84,12 @@ export function LiFiModal({ isOpen, onClose, work, professorAddress, onPaymentCo
     setExecuting(false);
 
     setTimeout(() => {
-      onPaymentComplete();
-      onClose();
-      setStep('quote');
-      setQuote(null);
-      setFromAmount('');
+      Promise.resolve(onPaymentComplete()).finally(() => {
+        onClose();
+        setStep('quote');
+        setQuote(null);
+        setFromAmount('');
+      });
     }, 2000);
   };
 
@@ -122,7 +127,7 @@ export function LiFiModal({ isOpen, onClose, work, professorAddress, onPaymentCo
               <p className="font-display text-lg text-[#fbf5dc]">{work.title}</p>
               <div className="flex items-center justify-between text-sm">
                 <span className="font-mono-data text-[#ffd900]">{truncateAddress(work.professor)}</span>
-                <span className="text-[#fbf5dc]">{solPrice} SOL</span>
+                <span className="text-[#fbf5dc]">{solPrice} SOL / {usdcPrice} USDC</span>
               </div>
             </div>
 
@@ -167,7 +172,7 @@ export function LiFiModal({ isOpen, onClose, work, professorAddress, onPaymentCo
                 />
                 <button
                   onClick={fetchQuote}
-                  disabled={loading || !fromAmount}
+                  disabled={loading || !fromAmount || disabled}
                   className="px-6 py-3 bg-[#262626] text-[#ffd900] border border-[#404040] hover:border-[#ffd900] transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm"
                 >
                   {loading ? <Loader2 size={16} className="animate-spin" /> : 'Get Quote'}
@@ -222,7 +227,7 @@ export function LiFiModal({ isOpen, onClose, work, professorAddress, onPaymentCo
             {step === 'confirm' && quote && (
               <button
                 onClick={executePayment}
-                disabled={executing}
+                disabled={executing || disabled}
                 className="w-full py-4 grad-gold text-[#0e0e0e] font-semibold text-base hover:shadow-[0_0_40px_rgba(255,217,0,0.4)] transition-shadow disabled:opacity-50"
               >
                 {executing ? (

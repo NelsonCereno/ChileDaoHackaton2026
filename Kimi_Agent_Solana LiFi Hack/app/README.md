@@ -1,5 +1,18 @@
 # React + TypeScript + Vite
 
+## EduMint MVP additions
+
+- On-chain `Access` PDA per `(work_id, student)` is now created when access is purchased (SOL or USDC SPL).
+- `AcademicWork` now stores both `price_lamports` and `price_usdc` (6 decimals).
+- Li.Fi flow now bridges funds to the student Solana wallet first, then finalizes access on-chain through `purchase_access_usdc`.
+
+### Environment variables
+
+Add these in `.env` (or use defaults where available):
+
+- `VITE_SOLANA_USDC_MINT` (USDC mint address used for SPL purchase flow)
+- `VITE_SOLANA_PROFESSOR_USDC_ATA` (optional override for professor USDC token account)
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

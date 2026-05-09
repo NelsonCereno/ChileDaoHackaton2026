@@ -23,7 +23,8 @@
         { "name": "title", "type": "string" },
         { "name": "description", "type": "string" },
         { "name": "contentHash", "type": "string" },
-        { "name": "priceLamports", "type": "u64" }
+        { "name": "priceLamports", "type": "u64" },
+        { "name": "priceUsdc", "type": "u64" }
       ]
     },
     {
@@ -40,8 +41,24 @@
       "name": "accessWork",
       "accounts": [
         { "name": "work", "isMut": true, "isSigner": false },
+        { "name": "access", "isMut": true, "isSigner": false },
         { "name": "payer", "isMut": true, "isSigner": true },
         { "name": "professor", "isMut": true, "isSigner": false },
+        { "name": "systemProgram", "isMut": false, "isSigner": false }
+      ],
+      "args": []
+    },
+    {
+      "name": "purchaseAccessUsdc",
+      "accounts": [
+        { "name": "work", "isMut": true, "isSigner": false },
+        { "name": "access", "isMut": true, "isSigner": false },
+        { "name": "payer", "isMut": true, "isSigner": true },
+        { "name": "professor", "isMut": true, "isSigner": false },
+        { "name": "payerToken", "isMut": true, "isSigner": false },
+        { "name": "professorToken", "isMut": true, "isSigner": false },
+        { "name": "usdcMint", "isMut": false, "isSigner": false },
+        { "name": "tokenProgram", "isMut": false, "isSigner": false },
         { "name": "systemProgram", "isMut": false, "isSigner": false }
       ],
       "args": []
@@ -69,8 +86,20 @@
           { "name": "description", "type": "string" },
           { "name": "contentHash", "type": "string" },
           { "name": "priceLamports", "type": "u64" },
+          { "name": "priceUsdc", "type": "u64" },
           { "name": "createdAt", "type": "i64" },
           { "name": "accessCount", "type": "u64" }
+        ]
+      }
+    },
+    {
+      "name": "access",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "workId", "type": "u64" },
+          { "name": "student", "type": "publicKey" },
+          { "name": "accessedAt", "type": "i64" }
         ]
       }
     }
@@ -81,7 +110,8 @@
     { "code": 6002, "name": "HashTooLong", "msg": "Content hash exceeds max length" },
     { "code": 6003, "name": "InvalidPrice", "msg": "Price must be greater than zero" },
     { "code": 6004, "name": "Unauthorized", "msg": "Unauthorized" },
-    { "code": 6005, "name": "Overflow", "msg": "Arithmetic overflow" }
+    { "code": 6005, "name": "Overflow", "msg": "Arithmetic overflow" },
+    { "code": 6006, "name": "InvalidUsdcMint", "msg": "Invalid USDC mint" }
   ],
   "metadata": {
     "address": "Edumint1111111111111111111111111111111111112"
