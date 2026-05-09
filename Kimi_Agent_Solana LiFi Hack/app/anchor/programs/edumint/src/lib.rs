@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 
-declare_id!("Edumint1111111111111111111111111111111111112");
+declare_id!("EdumintXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
 
 pub const REGISTRY_SEED: &[u8] = b"registry";
 pub const WORK_SEED: &[u8] = b"academic_work";
@@ -10,7 +9,6 @@ pub const ACCESS_SEED: &[u8] = b"access";
 const TITLE_MAX: usize = 128;
 const DESC_MAX: usize = 512;
 const HASH_MAX: usize = 64;
-const USDC_DECIMALS: u8 = 6;
 
 #[program]
 pub mod edumint {
@@ -29,13 +27,11 @@ pub mod edumint {
         description: String,
         content_hash: String,
         price_lamports: u64,
-        price_usdc: u64,
     ) -> Result<()> {
         require!(title.as_bytes().len() <= TITLE_MAX, EduMintError::TitleTooLong);
         require!(description.as_bytes().len() <= DESC_MAX, EduMintError::DescriptionTooLong);
         require!(content_hash.as_bytes().len() <= HASH_MAX, EduMintError::HashTooLong);
         require!(price_lamports > 0, EduMintError::InvalidPrice);
-        require!(price_usdc > 0, EduMintError::InvalidPrice);
 
         let registry = &mut ctx.accounts.registry;
         let work = &mut ctx.accounts.work;
@@ -46,7 +42,6 @@ pub mod edumint {
         work.description = description;
         work.content_hash = content_hash;
         work.price_lamports = price_lamports;
-        work.price_usdc = price_usdc;
         work.created_at = Clock::get()?.unix_timestamp;
         work.access_count = 0;
 
@@ -68,9 +63,9 @@ pub mod edumint {
 
     pub fn access_work(ctx: Context<AccessWork>) -> Result<()> {
         let work = &mut ctx.accounts.work;
-        require!(work.professor == ctx.accounts.professor.key(), EduMintError::Unauthorized);
         require!(work.price_lamports > 0, EduMintError::InvalidPrice);
 
+        // Transfer SOL from student (payer) to professor
         let ix = anchor_lang::solana_program::system_instruction::transfer(
             &ctx.accounts.payer.key(),
             &ctx.accounts.professor.key(),
@@ -84,38 +79,6 @@ pub mod edumint {
                 ctx.accounts.system_program.to_account_info(),
             ],
         )?;
-
-        work.access_count = work
-            .access_count
-            .checked_add(1)
-            .ok_or(EduMintError::Overflow)?;
-
-        let access = &mut ctx.accounts.access;
-        access.work_id = work.work_id;
-        access.student = ctx.accounts.payer.key();
-        access.accessed_at = Clock::get()?.unix_timestamp;
-
-        Ok(())
-    }
-
-    pub fn purchase_access_usdc(ctx: Context<PurchaseAccessUsdc>) -> Result<()> {
-        let work = &mut ctx.accounts.work;
-        require!(work.professor == ctx.accounts.professor.key(), EduMintError::Unauthorized);
-        require!(work.price_usdc > 0, EduMintError::InvalidPrice);
-        require!(
-            ctx.accounts.usdc_mint.decimals == USDC_DECIMALS,
-            EduMintError::InvalidUsdcMint
-        );
-
-        let cpi_ctx = CpiContext::new(
-            ctx.accounts.token_program.to_account_info(),
-            Transfer {
-                from: ctx.accounts.payer_token.to_account_info(),
-                to: ctx.accounts.professor_token.to_account_info(),
-                authority: ctx.accounts.payer.to_account_info(),
-            },
-        );
-        token::transfer(cpi_ctx, work.price_usdc)?;
 
         work.access_count = work
             .access_count
@@ -184,43 +147,12 @@ pub struct AccessWork<'info> {
     pub access: Account<'info, Access>,
     #[account(mut)]
     pub payer: Signer<'info>,
-    /// CHECK: Verified against work.professor
-    #[account(mut)]
-    pub professor: UncheckedAccount<'info>,
-    pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
-pub struct PurchaseAccessUsdc<'info> {
-    #[account(mut)]
-    pub work: Account<'info, AcademicWork>,
-    #[account(
-        init,
-        payer = payer,
-        space = Access::LEN,
-        seeds = [ACCESS_SEED, &work.work_id.to_le_bytes(), payer.key().as_ref()],
-        bump
-    )]
-    pub access: Account<'info, Access>,
-    #[account(mut)]
-    pub payer: Signer<'info>,
-    /// CHECK: Verified against work.professor
-    #[account(mut)]
-    pub professor: UncheckedAccount<'info>,
+    /// CHECK: Verified against work.professor - receives payment
     #[account(
         mut,
-        constraint = payer_token.owner == payer.key() @ EduMintError::Unauthorized,
-        constraint = payer_token.mint == usdc_mint.key() @ EduMintError::InvalidUsdcMint
+        constraint = professor.key() == work.professor @ EduMintError::Unauthorized
     )]
-    pub payer_token: Account<'info, TokenAccount>,
-    #[account(
-        mut,
-        constraint = professor_token.owner == professor.key() @ EduMintError::Unauthorized,
-        constraint = professor_token.mint == usdc_mint.key() @ EduMintError::InvalidUsdcMint
-    )]
-    pub professor_token: Account<'info, TokenAccount>,
-    pub usdc_mint: Account<'info, Mint>,
-    pub token_program: Program<'info, Token>,
+    pub professor: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
 }
 
@@ -242,14 +174,13 @@ pub struct AcademicWork {
     pub description: String,
     pub content_hash: String,
     pub price_lamports: u64,
-    pub price_usdc: u64,
     pub created_at: i64,
     pub access_count: u64,
 }
 
 impl AcademicWork {
     pub const LEN: usize =
-        8 + 8 + 32 + (4 + TITLE_MAX) + (4 + DESC_MAX) + (4 + HASH_MAX) + 8 + 8 + 8 + 8;
+        8 + 8 + 32 + (4 + TITLE_MAX) + (4 + DESC_MAX) + (4 + HASH_MAX) + 8 + 8 + 8;
 }
 
 #[account]
@@ -277,6 +208,4 @@ pub enum EduMintError {
     Unauthorized,
     #[msg("Arithmetic overflow")]
     Overflow,
-    #[msg("Invalid USDC mint")]
-    InvalidUsdcMint,
 }

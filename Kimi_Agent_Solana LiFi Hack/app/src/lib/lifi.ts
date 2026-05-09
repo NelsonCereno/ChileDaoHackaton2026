@@ -21,8 +21,8 @@ export const SUPPORTED_CHAINS: ChainOption[] = [
   { id: 56, name: 'BSC', icon: 'bsc' },
 ];
 
-// USDC on Solana
-export const SOLANA_USDC = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+// SOL (native) on Solana — wrapped SOL address
+export const SOLANA_SOL = 'So11111111111111111111111111111111111111112';
 export const SOLANA_CHAIN_ID = 1399811149;
 
 // Initialize Li.Fi SDK
@@ -84,7 +84,7 @@ export async function getCrossChainQuote(request: QuoteRequest): Promise<QuoteRe
       fromAmount: request.fromAmount,
       toAmount: quote.estimate?.toAmount || '0',
       fromToken: { symbol: quote.action?.fromToken?.symbol || 'ETH', decimals: quote.action?.fromToken?.decimals || 18 },
-      toToken: { symbol: quote.action?.toToken?.symbol || 'USDC', decimals: quote.action?.toToken?.decimals || 6 },
+      toToken: { symbol: quote.action?.toToken?.symbol || 'SOL', decimals: quote.action?.toToken?.decimals || 9 },
       gasCostUSD: quote.estimate?.gasCosts?.[0]?.amountUSD,
       estimatedTime: quote.estimate?.executionDuration,
     };

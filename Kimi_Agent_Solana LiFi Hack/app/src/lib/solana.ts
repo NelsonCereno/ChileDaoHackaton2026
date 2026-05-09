@@ -7,9 +7,6 @@ export const WORK_SEED = 'academic_work';
 export const REGISTRY_SEED = 'registry';
 export const ACCESS_SEED = 'access';
 
-export const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
-export const ASSOCIATED_TOKEN_PROGRAM_ID = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL');
-
 export interface AcademicWork {
   workId: number;
   professor: string;
@@ -17,7 +14,6 @@ export interface AcademicWork {
   description: string;
   contentHash: string;
   priceLamports: number;
-  priceUsdc: number;
   createdAt: number;
   accessCount: number;
 }
@@ -37,12 +33,6 @@ export const connection = new Connection(
 const PROGRAM_ID = new PublicKey(
   import.meta.env.VITE_SOLANA_PROGRAM_ID || (idl as any).metadata?.address
 );
-
-export function getUsdcMint(): PublicKey {
-  return new PublicKey(
-    import.meta.env.VITE_SOLANA_USDC_MINT || 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
-  );
-}
 
 function getReadOnlyWallet(): AnchorWallet {
   return {
@@ -88,19 +78,8 @@ export function getAccessPDA(workId: number, student: PublicKey): [PublicKey, nu
   );
 }
 
-export function deriveAssociatedTokenAddress(owner: PublicKey, mint: PublicKey): PublicKey {
-  return PublicKey.findProgramAddressSync(
-    [owner.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), mint.toBuffer()],
-    ASSOCIATED_TOKEN_PROGRAM_ID
-  )[0];
-}
-
 export function lamportsToSOL(lamports: number): string {
   return (lamports / 1_000_000_000).toFixed(4);
-}
-
-export function baseUnitsToUsdc(amount: number): string {
-  return (amount / 1_000_000).toFixed(2);
 }
 
 export function truncateAddress(addr: string): string {
@@ -133,7 +112,6 @@ function mapWork(raw: any): AcademicWork {
     description: raw.description,
     contentHash: raw.contentHash,
     priceLamports: Number(raw.priceLamports),
-    priceUsdc: Number(raw.priceUsdc),
     createdAt: Number(raw.createdAt) * 1000,
     accessCount: Number(raw.accessCount),
   };
@@ -206,8 +184,7 @@ export async function registerWork(
   title: string,
   description: string,
   contentHash: string,
-  priceLamports: number,
-  priceUsdc: number
+  priceLamports: number
 ): Promise<AcademicWork> {
   const provider = getProvider(conn, wallet);
   await ensureRegistry(provider, wallet);
@@ -218,7 +195,7 @@ export async function registerWork(
   const [workPda] = getWorkPDA(nextWorkId);
 
   await program.methods
-    .registerWork(title, description, contentHash, new BN(priceLamports), new BN(priceUsdc))
+    .registerWork(title, description, contentHash, new BN(priceLamports))
     .accounts({
       registry: registryPda,
       work: workPda,
@@ -268,40 +245,6 @@ export async function accessWork(
       access: accessPda,
       payer: wallet.publicKey,
       professor: professorKey,
-      systemProgram: SystemProgram.programId,
-    })
-    .rpc();
-}
-
-export async function purchaseAccessUsdc(
-  conn: Connection,
-  wallet: AnchorWallet,
-  work: AcademicWork,
-  usdcMint: PublicKey = getUsdcMint()
-): Promise<string> {
-  const provider = getProvider(conn, wallet);
-  const program = getProgram(provider);
-  const [workPda] = getWorkPDA(work.workId);
-  const [accessPda] = getAccessPDA(work.workId, wallet.publicKey);
-  const professor = new PublicKey(work.professor);
-  const payerToken = deriveAssociatedTokenAddress(wallet.publicKey, usdcMint);
-
-  const professorTokenFromEnv = import.meta.env.VITE_SOLANA_PROFESSOR_USDC_ATA;
-  const professorToken = professorTokenFromEnv
-    ? new PublicKey(professorTokenFromEnv)
-    : deriveAssociatedTokenAddress(professor, usdcMint);
-
-  return program.methods
-    .purchaseAccessUsdc()
-    .accounts({
-      work: workPda,
-      access: accessPda,
-      payer: wallet.publicKey,
-      professor,
-      payerToken,
-      professorToken,
-      usdcMint,
-      tokenProgram: TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
     })
     .rpc();

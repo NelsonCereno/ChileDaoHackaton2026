@@ -4,14 +4,14 @@ import {
   SUPPORTED_CHAINS,
   NATIVE_TOKEN,
   SOLANA_CHAIN_ID,
-  SOLANA_USDC,
+  SOLANA_SOL,
   getCrossChainQuote,
   formatTokenAmount,
   connectEvmWallet,
   executeCrossChainRoute,
 } from '@/lib/lifi';
 import type { QuoteResult } from '@/lib/lifi';
-import { truncateAddress, lamportsToSOL, baseUnitsToUsdc } from '@/lib/solana';
+import { truncateAddress, lamportsToSOL } from '@/lib/solana';
 import type { AcademicWork } from '@/lib/solana';
 
 interface LiFiModalProps {
@@ -32,8 +32,7 @@ export function LiFiModal({ isOpen, onClose, work, solanaAddress, onPaymentCompl
   const [step, setStep] = useState<'quote' | 'confirm' | 'executing' | 'success'>('quote');
   const [walletError, setWalletError] = useState('');
 
-  const solPrice = parseFloat(lamportsToSOL(work.priceLamports));
-  const usdcPrice = baseUnitsToUsdc(work.priceUsdc);
+  const solPrice = lamportsToSOL(work.priceLamports);
 
   const fetchQuote = useCallback(async () => {
     if (!fromAmount || parseFloat(fromAmount) <= 0) return;
@@ -50,14 +49,14 @@ export function LiFiModal({ isOpen, onClose, work, solanaAddress, onPaymentCompl
     setLoading(true);
     setStep('quote');
 
-    // Convert SOL price to wei (simplified for demo)
+    // Convert amount to wei (simplified for demo)
     const amountInWei = Math.floor(parseFloat(fromAmount) * 1e18).toString();
 
     const result = await getCrossChainQuote({
       fromChain: selectedChain.id,
       toChain: SOLANA_CHAIN_ID,
       fromToken: NATIVE_TOKEN[selectedChain.id],
-      toToken: SOLANA_USDC,
+      toToken: SOLANA_SOL,
       fromAmount: amountInWei,
       toAddress: solanaAddress,
       fromAddress: address,
@@ -116,7 +115,7 @@ export function LiFiModal({ isOpen, onClose, work, solanaAddress, onPaymentCompl
             </div>
             <p className="text-[#fbf5dc] text-lg">Cross-chain payment executed!</p>
             <p className="text-[#8a8a8a] text-sm">
-              Professor received USDC on Solana. Access granted.
+              SOL delivered to your Solana wallet. Completing access...
             </p>
           </div>
         ) : (
@@ -127,7 +126,7 @@ export function LiFiModal({ isOpen, onClose, work, solanaAddress, onPaymentCompl
               <p className="font-display text-lg text-[#fbf5dc]">{work.title}</p>
               <div className="flex items-center justify-between text-sm">
                 <span className="font-mono-data text-[#ffd900]">{truncateAddress(work.professor)}</span>
-                <span className="text-[#fbf5dc]">{solPrice} SOL / {usdcPrice} USDC</span>
+                <span className="text-[#fbf5dc]">{solPrice} SOL</span>
               </div>
             </div>
 
@@ -188,7 +187,7 @@ export function LiFiModal({ isOpen, onClose, work, solanaAddress, onPaymentCompl
               <label className="text-sm text-[#8a8a8a]">To Chain</label>
               <div className="bg-[#0e0e0e] border border-[#ffd900]/30 px-4 py-3 flex items-center justify-between">
                 <span className="text-[#ffd900] font-medium">Solana</span>
-                <span className="text-xs text-[#8a8a8a]">USDC</span>
+                <span className="text-xs text-[#8a8a8a]">SOL</span>
               </div>
             </div>
 
@@ -200,7 +199,7 @@ export function LiFiModal({ isOpen, onClose, work, solanaAddress, onPaymentCompl
                   <span className="text-[#fbf5dc]">{fromAmount} {quote.fromToken.symbol}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-[#8a8a8a]">Professor receives</span>
+                  <span className="text-[#8a8a8a]">You receive on Solana</span>
                   <span className="text-[#ffd900] font-medium">
                     {formatTokenAmount(quote.toAmount, quote.toToken.decimals)} {quote.toToken.symbol}
                   </span>

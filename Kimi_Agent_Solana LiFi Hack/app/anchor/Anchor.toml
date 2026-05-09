@@ -6,10 +6,10 @@ solana_version = "1.18.18"
 resolution = true
 
 [programs.localnet]
-edumint = "Edumint1111111111111111111111111111111111112"
+edumint = "EdumintXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 
 [programs.devnet]
-edumint = "Edumint1111111111111111111111111111111111112"
+edumint = "EdumintXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 
 [registry]
 url = "https://api.apr.dev"

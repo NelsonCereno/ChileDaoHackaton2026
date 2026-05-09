@@ -8,8 +8,6 @@ import {
   truncateAddress,
   accessWork,
   hasAccess,
-  purchaseAccessUsdc,
-  baseUnitsToUsdc,
 } from '@/lib/solana';
 import { MonolithicAvatar } from '@/components/MonolithicAvatar';
 import { LiFiModal } from '@/components/LiFiModal';
@@ -28,7 +26,6 @@ export function WorkDetail() {
   const [loading, setLoading] = useState(true);
   const [accessing, setAccessing] = useState(false);
   const [accessGranted, setAccessGranted] = useState(false);
-  const [registeringUsdcAccess, setRegisteringUsdcAccess] = useState(false);
   const [showLiFi, setShowLiFi] = useState(false);
   const [copiedHash, setCopiedHash] = useState(false);
   const [error, setError] = useState('');
@@ -78,18 +75,19 @@ export function WorkDetail() {
 
   const handleCrossChainPaymentComplete = async () => {
     if (!work || !publicKey) return;
-    setRegisteringUsdcAccess(true);
+    // After LI.FI delivers SOL to the student's wallet, call accessWork
+    setAccessing(true);
     setError('');
     try {
-      const sig = await purchaseAccessUsdc(connection, wallet as any, work);
-      console.log('USDC access tx:', sig);
+      const sig = await accessWork(connection, wallet as any, work);
+      console.log('Access tx after cross-chain:', sig);
       setAccessGranted(true);
       setShowLiFi(false);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
-      setError(`Cross-chain payment completed, but on-chain USDC registration failed: ${message}`);
+      setError(`Cross-chain payment completed, but on-chain access failed: ${message}`);
     } finally {
-      setRegisteringUsdcAccess(false);
+      setAccessing(false);
     }
   };
 
@@ -126,7 +124,6 @@ export function WorkDetail() {
   }
 
   const solPrice = lamportsToSOL(work.priceLamports);
-  const usdcPrice = baseUnitsToUsdc(work.priceUsdc);
   const dateStr = new Date(work.createdAt).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
@@ -179,7 +176,6 @@ export function WorkDetail() {
                   <span>Price</span>
                 </div>
                 <p className="font-display text-2xl text-[#fbf5dc]">{solPrice} SOL</p>
-                <p className="text-xs text-[#ffd900]">{usdcPrice} USDC</p>
               </div>
               <div className="space-y-1">
                 <div className="flex items-center gap-1.5 text-[#8a8a8a] text-xs">
@@ -292,7 +288,7 @@ export function WorkDetail() {
           work={work}
           solanaAddress={publicKey?.toString() || ''}
           onPaymentComplete={handleCrossChainPaymentComplete}
-          disabled={registeringUsdcAccess}
+          disabled={accessing}
         />
       )}
     </div>
